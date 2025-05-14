@@ -6,9 +6,9 @@ game:GetService("StarterGui"):SetCore("SendNotification",{
 })
 local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/tbao143/Library-ui/refs/heads/main/Redzhubui"))()
 local Window = redzlib:MakeWindow({
-    Title = "DingaHub",
-    SubTitle = "t.me/DingaScripts",
-    SaveFolder = "DingaHub"
+    Title = "Grow A Garden",
+    SubTitle = "t.me/Mauscripts",
+    SaveFolder = "Grow A Garden"
 })
 Window:AddMinimizeButton({
     Button = { Image = "rbxassetid://129605678294650", BackgroundTransparency = 0 },
@@ -747,8 +747,8 @@ Toggle7:Callback(function(Value)
 end)
 local Tab4 = Window:MakeTab({"Credits", "Credits"})
 Tab4:AddDiscordInvite({
-    Name = "DingaScripts",
+    Name = "Mauscripts",
     Description = "Join Telegram",
     Logo = "rbxassetid://129605678294650",
-    Invite = "https://t.me/DingaScripts",
+    Invite = "https://t.me/mauscripts",
 })
