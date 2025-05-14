@@ -1,0 +1,754 @@
+setclipboard("https://t.me/DingaScripts")
+game:GetService("StarterGui"):SetCore("SendNotification",{
+ Title = "Уведомление",
+ Text = "Скрипт взят с ТГК DingaScripts! Подписывайся",
+ Icon = "rbxassetid://129605678294650"
+})
+local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/tbao143/Library-ui/refs/heads/main/Redzhubui"))()
+local Window = redzlib:MakeWindow({
+    Title = "DingaHub",
+    SubTitle = "t.me/DingaScripts",
+    SaveFolder = "DingaHub"
+})
+Window:AddMinimizeButton({
+    Button = { Image = "rbxassetid://129605678294650", BackgroundTransparency = 0 },
+    Corner = { CornerRadius = UDim.new(35, 1) },
+})
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local Tab1 = Window:MakeTab({"Auto Harvest", "auto harvest"})
+local Section = Tab1:AddSection({"Main"})
+local enabled = false
+local selected = "harvest aura"
+local gayposition = nil
+local Toggle1 = Tab1:AddToggle({
+    Name = "Auto Farm",
+    Description = "<font color='rgb(88, 101, 242)'>Automatically harvest fruits.</font>",
+    Default = false,
+    Callback = function(Value)
+        enabled = Value
+    end
+})
+local Dropdown = Tab1:AddDropdown({
+    Name = "Method",
+    Description = "<font color='rgb(88, 101, 242)'>Select method</font>",
+    Options = {"harvest aura", "walk to fruits and harvest", "tp to fruits and harvest"},
+    Default = "harvest aura",
+    Flag = "dropdown teste",
+    Callback = function(Value)
+        selected = Value
+    end
+})
+local function getCharacter()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+    return char, humanoid, root
+end
+local function harvest(seconds)
+    local endTime = tick() + seconds
+    while tick() < endTime and enabled do
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        task.wait(0.1)
+    end
+end
+local function lastpos(targetPosition, radius)
+    if gayposition == nil then
+        return false
+    end
+    return (targetPosition - gayposition).Magnitude < radius
+end
+task.spawn(function()
+    while true do
+        if enabled and (selected == "walk to fruits and harvest" or selected == "tp to fruits and harvest") then
+            local farmsFolder = workspace:FindFirstChild("Farm")
+            if farmsFolder then
+                for _, farm in ipairs(farmsFolder:GetChildren()) do
+                    if farm:IsA("Folder") and farm.Name == "Farm" then
+                        local important = farm:FindFirstChild("Important")
+                        if important then
+                            local data = important:FindFirstChild("Data")
+                            local owner = data and data:FindFirstChild("Owner")
+                            if owner and owner:IsA("StringValue") and owner.Value == player.Name then
+                                local plantsFolder = important:FindFirstChild("Plants_Physical")
+                                if plantsFolder then
+                                    local plants = plantsFolder:GetChildren()
+                                    if #plants > 0 then
+                                        local target = plants[math.random(1, #plants)]
+                                        local pos
+                                        if target:IsA("BasePart") then
+                                            pos = target.Position
+                                        elseif target:IsA("Model") and target.PrimaryPart then
+                                            pos = target.PrimaryPart.Position
+                                        end
+                                        if pos then
+                                            if lastpos(pos, 10) then
+                                                continue
+                                            end
+                                            if selected == "walk to fruits and harvest" then
+                                                local _, humanoid = getCharacter()
+                                                humanoid:MoveTo(pos)
+                                                task.wait(1)
+                                                task.spawn(function()
+                                                    harvest(3)
+                                                end)
+                                            elseif selected == "tp to fruits and harvest" then
+                                                local _, humanoid = getCharacter()
+                                                humanoid.RootPart.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
+                                                task.wait(0.01)
+                                                task.spawn(function()
+                                                    harvest(3)
+                                                end)
+                                                lastTeleportPosition = pos
+                                            end
+
+                                            task.wait(0.7)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(0.5)
+    end
+end)
+RunService.RenderStepped:Connect(function()
+    if enabled and selected == "harvest aura" then
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+end)
+local Tab10 = Window:MakeTab({"Auto Plant", "auto plant"})
+local Toggle1 = Tab10:AddToggle({
+    Name = "Auto Plant",
+    Description = "<font color='rgb(88, 101, 242)'>auto plant selected seed</font>",
+    Default = false
+})
+shared.selectedSeed = "Carrot"
+local Dropdown = Tab10:AddDropdown({ 
+    Name = "Auto Plant Seed", 
+    Description = "Select the <font color='rgb(88, 101, 242)'>Seed</font>", 
+    Options = {
+        "Carrot", "Strawberry", "Blueberry", "Orange Tulip",
+        "Tomato", "Corn", "Daffodil", "Watermelon", "Pumpkin", 
+        "Apple", "Bamboo", "Coconut", "Cactus", "Dragon Fruit", 
+        "Mango", "Grape", "Mushroom", "Repper", "Cacao"
+    },
+    Default = "Carrot",
+    Callback = function(Value)
+        shared.selectedSeed = Value
+    end
+})
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local localPlayer = Players.LocalPlayer
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local autoPlant = false
+local function equipSeed()
+    for _, tool in ipairs(localPlayer.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and tool.Name:find(shared.selectedSeed .. " Seed") then
+            tool.Parent = character
+            return true
+        end
+    end
+    return false
+end
+local function hasSeedEquipped()
+    for _, tool in ipairs(character:GetChildren()) do
+        if tool:IsA("Tool") and tool.Name:find(shared.selectedSeed .. " Seed") then
+            return true
+        end
+    end
+    return false
+end
+local function teleportTo(position)
+    if typeof(position) == "Vector3" then
+        humanoidRootPart.CFrame = CFrame.new(position + Vector3.new(0, 3, 0))
+    end
+end
+local function getRandomPointInPart(part)
+    local size = part.Size
+    local pos = part.Position
+    return Vector3.new(
+        pos.X + (math.random() * 2 - 1) * size.X / 2,
+        pos.Y,
+        pos.Z + (math.random() * 2 - 1) * size.Z / 2
+    )
+end
+local function plantSeed(position)
+    local plantRE = ReplicatedStorage:FindFirstChild("GameEvents") and ReplicatedStorage.GameEvents:FindFirstChild("Plant_RE")
+    if plantRE then
+        plantRE:FireServer(position, shared.selectedSeed)
+    end
+end
+local function autoPlantLoop()
+    while autoPlant do
+        local ready = false
+        if hasSeedEquipped() or equipSeed() then
+            for _, farm in ipairs(Workspace.Farm:GetChildren()) do
+                local important = farm:FindFirstChild("Important")
+                local data = important and important:FindFirstChild("Data")
+                local owner = data and data:FindFirstChild("Owner")
+
+                if owner and owner.Value == localPlayer.Name then
+                    local plantLoc = important:FindFirstChild("Plant_Locations")
+                    local canPlant = plantLoc and plantLoc:FindFirstChild("Can_Plant")
+
+                    if canPlant then
+                        local targetPos = getRandomPointInPart(canPlant)
+                        teleportTo(targetPos)
+                        task.wait(0.1)
+                        plantSeed(targetPos)
+                        ready = true
+                        break
+                    end
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end
+Toggle1:Callback(function(Value)
+    autoPlant = Value
+    if Value then
+        coroutine.wrap(autoPlantLoop)()
+    end
+end)
+local Tab52 = Window:MakeTab({"Auto Sell", "auto sell"})
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+local backpack = player:WaitForChild("Backpack")
+local character = player.Character or player.CharacterAdded:Wait()
+character:WaitForChild("HumanoidRootPart")
+local sellRemote = ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("Sell_Inventory")
+local autoSellEnabled = false
+local sell = 50
+local isProcessing = false
+local Toggle1 = Tab52:AddToggle({
+    Name = "Auto Sell",
+    Description = "<font color='rgb(88, 101, 242)'>Auto Sell</font>",
+    Default = false 
+})
+Toggle1:Callback(function(Value)
+    autoSellEnabled = Value
+end)
+Tab52:AddSlider({
+    Name = "Sell if count inventory is",
+    Min = 0,
+    Max = 200,
+    Increase = 1,
+    Default = 50,
+    Callback = function(Value)
+        sell = Value
+    end
+})
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if autoSellEnabled and not isProcessing then
+            local itemCount = #backpack:GetChildren()
+            if itemCount >= sell then
+                isProcessing = true
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local originalCFrame = hrp.CFrame
+                    hrp.CFrame = workspace.Tutorial_Points.Tutorial_Point_2.CFrame
+                    task.wait(0.2)
+                    sellRemote:FireServer()
+                    task.wait(0.1)
+                    hrp.CFrame = originalCFrame
+                end
+                isProcessing = false
+            end
+        end
+    end
+end)
+local Tab2 = Window:MakeTab({"Auto Buy Seeds", "auto buying"})
+local Toggle1 = Tab2:AddToggle({
+    Name = "Auto Buy Carrot",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying carrot</font>",
+    Default = false
+})
+local buying = false
+Toggle1:Callback(function(Value)
+    buying = Value
+    task.spawn(function()
+        while buying do
+            local args = {
+                "Carrot"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle2 = Tab2:AddToggle({
+    Name = "Auto Buy Strawberry",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying strawberry</font>",
+    Default = false
+})
+local buyingStrawberry = false
+Toggle2:Callback(function(Value)
+    buyingStrawberry = Value
+    task.spawn(function()
+        while buyingStrawberry do
+            local args = {
+                "Strawberry"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle3 = Tab2:AddToggle({
+    Name = "Auto Buy Blueberry",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying blueberry</font>",
+    Default = false
+})
+local buyingBlueBerry = false
+Toggle3:Callback(function(Value)
+    buyingBlueBerry = Value
+    task.spawn(function()
+        while buyingBlueBerry do
+            local args = {
+                "Blueberry"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle4 = Tab2:AddToggle({
+    Name = "Auto Buy Orange Tulip",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying orange tulip</font>",
+    Default = false
+})
+local buyingOrangeTulip = false
+Toggle4:Callback(function(Value)
+    buyingOrangeTulip = Value
+    task.spawn(function()
+        while buyingOrangeTulip do
+            local args = {
+                "Orange Tulip"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle5 = Tab2:AddToggle({
+    Name = "Auto Buy Tomato",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying tomato</font>",
+    Default = false
+})
+local buyingTomato = false
+Toggle5:Callback(function(Value)
+    buyingTomato = Value
+    task.spawn(function()
+        while buyingTomato do
+            local args = {
+                "Tomato"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle6 = Tab2:AddToggle({
+    Name = "Auto Buy Corn",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying corn</font>",
+    Default = false
+})
+local buyingCorn = false
+Toggle6:Callback(function(Value)
+    buyingCorn = Value
+    task.spawn(function()
+        while buyingCorn do
+            local args = {
+                "Corn"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle7 = Tab2:AddToggle({
+    Name = "Auto Buy Daffodil",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying daffodil</font>",
+    Default = false
+})
+local buyingDaffodil = false
+Toggle7:Callback(function(Value)
+    buyingDaffodil = Value
+    task.spawn(function()
+        while buyingDaffodil do
+            local args = {
+                "Daffodil"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle8 = Tab2:AddToggle({
+    Name = "Auto Buy Watermelon",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying watermelon</font>",
+    Default = false
+})
+local buyingWatermelon = false
+Toggle8:Callback(function(Value)
+    buyingWatermelon = Value
+    task.spawn(function()
+        while buyingWatermelon do
+            local args = {
+                "Watermelon"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle9 = Tab2:AddToggle({
+    Name = "Auto Buy Pumpkin",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying pumpkin</font>",
+    Default = false
+})
+local buyingPumpkin = false
+Toggle9:Callback(function(Value)
+    buyingPumpkin = Value
+    task.spawn(function()
+        while buyingPumpkin do
+            local args = {
+                "Pumpkin"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle10 = Tab2:AddToggle({
+    Name = "Auto Buy Apple",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying apple</font>",
+    Default = false
+})
+local buyingApple = false
+Toggle10:Callback(function(Value)
+    buyingApple = Value
+    task.spawn(function()
+        while buyingApple do
+            local args = {
+                "Apple"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle11 = Tab2:AddToggle({
+    Name = "Auto Buy Bamboo",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying bamboo</font>",
+    Default = false
+})
+local buyingBamboo = false
+Toggle11:Callback(function(Value)
+    buyingBamboo = Value
+    task.spawn(function()
+        while buyingBamboo do
+            local args = {
+                "Bamboo"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle12 = Tab2:AddToggle({
+    Name = "Auto Buy Coconut",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying coconut</font>",
+    Default = false
+})
+local buyingCoconut = false
+Toggle12:Callback(function(Value)
+    buyingCoconut = Value
+    task.spawn(function()
+        while buyingCoconut do
+            local args = {
+                "Coconut"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle14 = Tab2:AddToggle({
+    Name = "Auto Buy Dragon Fruit",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying dragon fruit</font>",
+    Default = false
+})
+local buyingDragonFruit = false
+Toggle14:Callback(function(Value)
+    buyingDragonFruit = Value
+    task.spawn(function()
+        while buyingDragonFruit do
+            local args = {
+                "Dragon Fruit"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle15 = Tab2:AddToggle({
+    Name = "Auto Buy Mango",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying mango</font>",
+    Default = false
+})
+local buyingMango = false
+Toggle15:Callback(function(Value)
+    buyingMango = Value
+    task.spawn(function()
+        while buyingMango do
+            local args = {
+                "Mango"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle16 = Tab2:AddToggle({
+    Name = "Auto Buy Grape",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying grape</font>",
+    Default = false
+})
+local buyingGrape = false
+Toggle16:Callback(function(Value)
+    buyingGrape = Value
+    task.spawn(function()
+        while buyingGrape do
+            local args = {
+                "Grape"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle17 = Tab2:AddToggle({
+    Name = "Auto Buy Mushroom",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying mushroom</font>",
+    Default = false
+})
+local buyingMushroom = false
+Toggle17:Callback(function(Value)
+    buyingMushroom = Value
+    task.spawn(function()
+        while buyingMushroom do
+            local args = {
+                "Mushroom"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle18 = Tab2:AddToggle({
+    Name = "Auto Buy Repper",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying repper</font>",
+    Default = false
+})
+local buyingRepper = false
+Toggle18:Callback(function(Value)
+    buyingRepper = Value
+    task.spawn(function()
+        while buyingRepper do
+            local args = {
+                "Repper"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle19 = Tab2:AddToggle({
+    Name = "Auto Buy Cacao",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying cacao</font>",
+    Default = false
+})
+local buyingCacao = false
+Toggle19:Callback(function(Value)
+    buyingCacao = Value
+    task.spawn(function()
+        while buyingCacao do
+            local args = {
+                "Cacao"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Tab3 = Window:MakeTab({"Auto Buy Gear", "Gear"})
+local Toggle1 = Tab3:AddToggle({
+    Name = "Auto Buy Watering Can",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying watering can</font>",
+    Default = false
+})
+local buying = false
+Toggle1:Callback(function(Value)
+    buying = Value
+    task.spawn(function()
+        while buying do
+            local args = {
+	        "Watering Can"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(unpack(args))
+
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle1 = Tab3:AddToggle({
+    Name = "Auto Buy Trowel",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying Trowel</font>",
+    Default = false
+})
+local buying = false
+Toggle1:Callback(function(Value)
+    buying = Value
+    task.spawn(function()
+        while buying do
+            local args = {
+	        "Trowel"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(unpack(args))
+
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle1 = Tab3:AddToggle({
+    Name = "Auto Buy Recall Wrench",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying Trowel</font>",
+    Default = false
+})
+local buying = false
+Toggle1:Callback(function(Value)
+    buying = Value
+    task.spawn(function()
+        while buying do
+local args = {
+	"Recall Wrench"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle2 = Tab3:AddToggle({
+    Name = "Auto Buy Basic Splinker",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying Basic Splinker</font>",
+    Default = false
+})
+local buyingSplinker = false
+Toggle2:Callback(function(Value)
+    buyingSplinker = Value
+    task.spawn(function()
+        while buyingSplinker do
+            local args = {
+                "Basic Splinker"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle3 = Tab3:AddToggle({
+    Name = "Auto Buy Advanced Sprinkler",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying Advanced Sprinkler</font>",
+    Default = false
+})
+local buyingAdvancedSprinkler = false
+Toggle3:Callback(function(Value)
+    buyingAdvancedSprinkler = Value
+    task.spawn(function()
+        while buyingAdvancedSprinkler do
+            local args = {
+                "Advanced Sprinkler"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle4 = Tab3:AddToggle({
+    Name = "Auto Buy Godly Sprinkler",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying Godly Sprinkler</font>",
+    Default = false
+})
+local buyingGodlySprinkler = false
+Toggle4:Callback(function(Value)
+    buyingGodlySprinkler = Value
+    task.spawn(function()
+        while buyingGodlySprinkler do
+            local args = {
+                "Godly Sprinkler"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle6 = Tab3:AddToggle({
+    Name = "Auto Buy Master Sprinkler",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying Master Sprinkler</font>",
+    Default = false
+})
+local buyingMasterSprinkler = false
+Toggle6:Callback(function(Value)
+    buyingMasterSprinkler = Value
+    task.spawn(function()
+        while buyingMasterSprinkler do
+            local args = {
+                "Master Sprinkler"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Toggle7 = Tab3:AddToggle({
+    Name = "Auto Buy Favorite Tool",
+    Description = "<font color='rgb(88, 101, 242)'>Auto buying Favorite Tool</font>",
+    Default = false
+})
+local buyingFavoriteTool = false
+Toggle7:Callback(function(Value)
+    buyingFavoriteTool = Value
+    task.spawn(function()
+        while buyingFavoriteTool do
+            local args = {
+                "Favorite Tool"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end)
+local Tab4 = Window:MakeTab({"Credits", "Credits"})
+Tab4:AddDiscordInvite({
+    Name = "DingaScripts",
+    Description = "Join Telegram",
+    Logo = "rbxassetid://129605678294650",
+    Invite = "https://t.me/DingaScripts",
+})
